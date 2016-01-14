@@ -1,9 +1,9 @@
 var app = angular.module('app', ['ionic']);
 
-app.controller("MyController", function ($scope, NewsService, $ionicSideMenuDelegate, $ionicSlideBoxDelegate) {
+app.controller("MyController", function ($scope, NewsService, $ionicSideMenuDelegate, $ionicSlideBoxDelegate, $sce) {
 
     $scope.model = {
-        'SliderArticles': [],
+        'RecentArticles': [],
         'ArabicArticles': [],
         'ArabicMain': [],
         'BusinessArticles': [],
@@ -26,10 +26,16 @@ app.controller("MyController", function ($scope, NewsService, $ionicSideMenuDele
         'YouthMain': [],
         'SportArticles': [],
         'UAEArticles': [],
-        'Pictures': []
+        'Pictures': [],
+        'Videos': []
+        
     };
     
     $ionicSlideBoxDelegate.update();
+    
+    $scope.trustSrc = function(src) {
+    return $sce.trustAsResourceUrl(src);
+    };
 
     $scope.toggleLeft = function () {
         $ionicSideMenuDelegate.toggleRight();
@@ -54,19 +60,19 @@ app.controller("MyController", function ($scope, NewsService, $ionicSideMenuDele
     };
     
     $scope.login2 = function() {
-console.log("Menu Icon");
-};
+    console.log("Menu Icon");
+    };
     
     
-    NewsService.loadSlideArticles().then(function success(data) {
-        console.log("Success!");
-        $scope.model.SliderArticles = NewsService.SliderArticles;
+    NewsService.loadRecentArticles().then(function success(data) {
+        console.log(NewsService.RecentArticles);
+        $scope.model.RecentArticles = NewsService.RecentArticles;
     }, function error(data) {
         console.log("Error!");
     });
 
     NewsService.loadArabic().then(function success(data) {
-        console.log("Success!");
+        console.log(NewsService.ArabicArticles);
         $scope.model.ArabicArticles = NewsService.ArabicArticles;
     }, function error(data) {
         console.log("Error!");
@@ -223,12 +229,19 @@ console.log("Menu Icon");
     }, function error(data) {
         console.log("Error!");
     });
+    
+     NewsService.loadVideos().then(function success(data) {
+        console.log(NewsService.Videos);
+        $scope.model.Videos = NewsService.Videos;
+    }, function error(data) {
+        console.log("Error!");
+    });
 
 });
 
 app.service("NewsService", function ($http, $q) {
     var self = {
-        'SliderArticles': [],
+        'RecentArticles': [],
         'ArabicArticles': [],
         'ArabicMain': [],
         'BusinessArticles': [],
@@ -252,20 +265,21 @@ app.service("NewsService", function ($http, $q) {
         'SportArticles': [],
         'UAEArticles': [],
         'Pictures': [],
+        'Videos': [],
         'replace': function (str, find, replace) {
             return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
         }
         ,
-        'loadSlideArticles': function () {
+        'loadRecentArticles': function () {
             var d = $q.defer();
-            $http.get("http://24ae.sdg.ae/_MobServices/CLS_MobServices.asmx/GetArticles?NumberOfItems=5")
+            $http.get("http://24ae.sdg.ae/_MobServices/CLS_MobServices.asmx/GetScrollArticles?NumberOfItems=15")
                     .success(function success(data) {
                         data = data.replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
                         data = data.replace("<string xmlns=\"http://24-MobData.org/\">", "");
                         data = data.replace("</string>", "");
                         data = data.split('~').join('http://24.ae');
-                        self.SliderArticles = JSON.parse(data);
-                        console.log("loadSlider (OK)");
+                        self.RecentArticles = JSON.parse(data);
+                        console.log("loadRecentArticles (OK)");
                         d.resolve();
                     })
                     .error(function error(msg) {
@@ -706,6 +720,25 @@ app.service("NewsService", function ($http, $q) {
                         data = data.split('~').join('http://24.ae');
                         self.Pictures = JSON.parse(data);
                         console.log("loadVarities (OK)");
+                        d.resolve();
+                    })
+                    .error(function error(msg) {
+                        console.log(msg);
+                        d.reject();
+                    });
+            return d.promise;
+        },
+        'loadVideos': function () {
+            var d = $q.defer();
+            $http.get("http://24ae.sdg.ae/_MobServices/CLS_MobServices.asmx/Get24Videos?NumberOfItems=10")
+                    .success(function success(data) {
+                        data = data.replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
+                        data = data.replace("<string xmlns=\"http://24-MobData.org/\">", "");
+                        data = data.replace("</string>", "");
+                        data = data.split('~').join('http://video.24.ae');
+                        data = data.split('watch?v=').join('embed/');
+                        self.Videos = JSON.parse(data);
+                        console.log(self.Videos);
                         d.resolve();
                     })
                     .error(function error(msg) {
